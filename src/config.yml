@@ -1,0 +1,3 @@
+craftCooldown: 8
+redstoneMode: 'indirect'
+particles: true

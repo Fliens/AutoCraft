@@ -1,5 +1,5 @@
 main: fliens.autocraft.AutoCraft
 name: AutoCraft
-version: 2.0
+version: 2.1
 api-version: 1.16
-author: Fliens
+author: Fliens, MrTransistor
