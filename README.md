@@ -7,19 +7,18 @@ You want to automate everything?
 
 This plugin takes crafting of your shoulders.
 
-Simply put an itemframe with a craftingtable in it on a dispenser. And put the recipe of the item you'd like to get craftet in the dispenser.
+Simply put an item frame with a crafting table in it on a dispenser. Put the recipe of the item you'd like to get crafted in the dispenser.
 
 ![image](https://user-images.githubusercontent.com/35639879/124355519-d7eb2a00-dc11-11eb-83b4-ec2d03890b83.png)
 
-This automatic craftingtable will now take every second(20 ticks) the needed items out of the inventory behind it and put the crafted item in the inventory infront of it.
+This automatic crafting table will now take needed items out of the inventory behind it and put the crafted item in the inventory in front of it.
+Time between actions can be configured (*default is 8 ticks - hopper speed*).
 
 ![image](https://user-images.githubusercontent.com/35639879/124355522-dde10b00-dc11-11eb-887f-480ef309301e.png)
 
-Works with shaped and shapeless recipes and with every block that has an inventory.
+Works with shaped and shapeless recipes **from the recipe book** and with every block that has an inventory.
 ![image](https://user-images.githubusercontent.com/35639879/124355528-e33e5580-dc11-11eb-98c1-ff938bec1842.png)
 
-You can also find the description on spigotmc: https://www.spigotmc.org/resources/autocraft.75618/
+You can also find the description on SpigotMC: https://www.spigotmc.org/resources/autocraft.75618/
 
 ## Feel free to contribute to this project.
-
-**It was one of my first plugins so please excuse any bad uses of the spigot api :)**

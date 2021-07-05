@@ -1,11 +1,24 @@
+/*  AutoCraft plugin
+ *
+ *  Copyright (C) 2021 Fliens
+ *  Copyright (C) 2021 MrTransistor
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package fliens.autocraft;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -18,7 +31,6 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Dispenser;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemFrame;
@@ -34,64 +46,60 @@ import org.bukkit.scheduler.BukkitScheduler;
 
 public class AutoCraft extends JavaPlugin {
 
-	boolean particles = true;
-	boolean ignoresRedstone = false;
+	boolean particles;
+	String redstoneMode;
+	long craftCooldown;
 
 	@Override
 	public void onEnable() {
-		System.out.println("Loaded AutoCraft by Fliens");
 		super.onEnable();
+		getLogger().info("AutoCraft plugin started"); // Using logger instead of System.out
 
-		FileConfiguration config = this.getConfig();
-		config.addDefault("particles", "true");
-		config.addDefault("ignoresRedstone", "false");
-		config.options().copyDefaults(true);
-		saveConfig();	
-		particles = config.getBoolean("particles");
-		ignoresRedstone = config.getBoolean("ignoresRedstone");
+		saveDefaultConfig(); // using default config file instead of hard-coding defaults
+		craftCooldown = getConfig().getLong("craftCooldown"); // added more config options
+		particles = getConfig().getBoolean("particles");
+		redstoneMode = getConfig().getString("redstoneMode");
 
 		new EventListener(this);
 		BukkitScheduler scheduler = getServer().getScheduler();
-		scheduler.scheduleSyncRepeatingTask(this, new Runnable() {
-			@Override
-			public void run() {
-				List<Block> autoCrafters = new ArrayList<Block>();
-				for (World world : Bukkit.getWorlds()) {
-					for (Chunk chunk : world.getLoadedChunks()) {
-						for (Entity entity : chunk.getEntities()) {
-							if (entity.getType().equals(EntityType.ITEM_FRAME)) {
-								if (((ItemFrame) entity).getItem().equals(new ItemStack(Material.CRAFTING_TABLE))) {
-									Block autoCrafter = entity.getLocation().getBlock()
-											.getRelative(((ItemFrame) entity).getAttachedFace());
-									if (!autoCrafters.contains(autoCrafter)
-											&& autoCrafter.getType().equals(Material.DISPENSER)) {
-										autoCrafters.add(autoCrafter);
-									}
+		scheduler.scheduleSyncRepeatingTask(this, () -> {
+			List<Block> autoCrafters = new ArrayList<>();
+			for (World world : Bukkit.getWorlds()) {
+				for (Chunk chunk : world.getLoadedChunks()) {
+					for (Entity entity : chunk.getEntities()) {
+						if (entity.getType().equals(EntityType.ITEM_FRAME)) {
+							if (((ItemFrame) entity).getItem().equals(new ItemStack(Material.CRAFTING_TABLE))) {
+								Block autoCrafter = entity.getLocation().getBlock()
+										.getRelative(((ItemFrame) entity).getAttachedFace());
+								if (!autoCrafters.contains(autoCrafter)
+										&& autoCrafter.getType().equals(Material.DISPENSER)) {
+									autoCrafters.add(autoCrafter);
 								}
 							}
 						}
 					}
 				}
-				for (Block autocrafter : autoCrafters) {
-					if(!ignoresRedstone) {
-					if (!autocrafter.isBlockPowered()) // make sure no redstone signal
-						handleAutoCrafter(autocrafter);
-					}else {
-						handleAutoCrafter(autocrafter);
+			} // redstone powering type check
+			for (final Block autocrafter : autoCrafters) {
+				if (!redstoneMode.equalsIgnoreCase("disabled")) {
+					if ((redstoneMode.equalsIgnoreCase("indirect") && autocrafter.isBlockIndirectlyPowered()) || autocrafter.isBlockPowered()) {
+						continue;
 					}
 				}
+				handleAutoCrafter(autocrafter);
 			}
-		}, 0L, 20L);
+		}, 0L, craftCooldown);// configurable cooldown
 	}
 
 	@Override
 	public void onDisable() {
 		super.onDisable();
+		getLogger().info("AutoCraft plugin stopped");
 	}
 
-	private boolean handleAutoCrafter(Block autocrafter) {
+	private void handleAutoCrafter(Block autocrafter) { // changed to void because not using the returned value
 		Dispenser dispenser = (Dispenser) autocrafter.getState();
-		BlockFace targetFace = ((org.bukkit.material.Dispenser) autocrafter.getState().getData()).getFacing();
+		BlockFace targetFace = ((org.bukkit.block.data.type.Dispenser) autocrafter.getBlockData()).getFacing(); // removed deprecated material.Dispenser
 		BlockState source = new Location(autocrafter.getWorld(),
 				autocrafter.getX() + targetFace.getOppositeFace().getModX(),
 				autocrafter.getY() + targetFace.getOppositeFace().getModY(),
@@ -103,12 +111,12 @@ public class AutoCraft extends JavaPlugin {
 			Inventory sourceInv = ((InventoryHolder) source).getInventory();
 			Inventory destinationInv = ((InventoryHolder) destination).getInventory();
 			List<ItemStack> crafterItems = new ArrayList<>(Arrays.asList(dispenser.getInventory().getContents()));
-			if (!crafterItems.stream().anyMatch(i -> i != null)) // test if crafter is empty
-				return false;
+			if (crafterItems.stream().noneMatch(Objects::nonNull)) // test if crafter is empty
+				return;
 			List<ItemStack> itemstmp = new ArrayList<>();
 			for (ItemStack item : crafterItems) {
 				if (item != null) {
-					if (!itemstmp.stream().anyMatch(i -> i.isSimilar(item))) {
+					if (itemstmp.stream().noneMatch(i -> i.isSimilar(item))) {
 						int count = 0;
 						for (ItemStack jtem : crafterItems) {
 							if (jtem != null) {
@@ -125,10 +133,10 @@ public class AutoCraft extends JavaPlugin {
 			}
 			for (ItemStack i : itemstmp)
 				if (!sourceInv.containsAtLeast(i, i.getAmount()))
-					return false;
+					return;
 			ItemStack result = getCraftResult(crafterItems);
 			if (result == null)
-				return false;
+				return;
 			boolean destHasSpace = false;
 			for (ItemStack destItem : destinationInv.getContents()) {
 				if (destItem == null) {
@@ -142,8 +150,8 @@ public class AutoCraft extends JavaPlugin {
 				}
 			}
 			if (!destHasSpace)// success
-				return false;
-			destinationInv.addItem(result);
+				return;
+			destinationInv.addItem(result.clone()); // Fix for "Paper" implementation of addItem which rewrites the 'result'
 			for (ItemStack item : itemstmp) {
 				for (int i = 0; i < item.getAmount(); i++) {
 					for (ItemStack sourceItem : sourceInv.getContents()) {
@@ -159,18 +167,16 @@ public class AutoCraft extends JavaPlugin {
 			if (particles)
 				for (Location loc : getHollowCube(autocrafter.getLocation(), 0.05))
 					loc.getWorld().spawnParticle(Particle.REDSTONE, loc, 2, 0, 0, 0, 0,
-							new Particle.DustOptions(Color.GREEN, 0.2F));
+							new Particle.DustOptions(Color.LIME, 0.2F)); // changed the color to be more vibrant
 		}
-		return true;
 	}
 
-	private Map<List<ItemStack>, ItemStack> cache = new HashMap<List<ItemStack>, ItemStack>();
-	private List<Recipe> recipes;
+	private final Map<List<ItemStack>, ItemStack> cache = new HashMap<>();
 
 	private ItemStack getCraftResult(List<ItemStack> items) {
 		if (cache.containsKey(items))
 			return cache.get(items);
-		recipes = new ArrayList<Recipe>();
+		List<Recipe> recipes = new ArrayList<>(); // moved to local from private global
 		Iterator<Recipe> it = getServer().recipeIterator();
 		while (it.hasNext()) {
 			Recipe rec = it.next();
@@ -184,13 +190,14 @@ public class AutoCraft extends JavaPlugin {
 		for (ItemStack itemstack : items) {
 			if (itemstack != null) {
 				notNull = true;
+				break; // added fast break when found an item
 			}
 		}
 		if (!notNull) {
 			return null;
 		}
 
-		ItemStack result = null;
+		ItemStack result;
 		for (Recipe recipe : recipes) {
 			if (recipe instanceof ShapelessRecipe) { // shapeless recipe
 				result = matchesShapeless(((ShapelessRecipe) recipe).getChoiceList(), items) ? recipe.getResult()
@@ -207,11 +214,11 @@ public class AutoCraft extends JavaPlugin {
 				}
 			}
 		}
-		return result;
+		return null;
 	}
 
 	private boolean matchesShapeless(List<RecipeChoice> choice, List<ItemStack> items) {
-		items = new ArrayList<ItemStack>(items);
+		items = new ArrayList<>(items);
 		for (RecipeChoice c : choice) {
 			boolean match = false;
 			for (int i = 0; i < items.size(); i++) {
@@ -220,7 +227,7 @@ public class AutoCraft extends JavaPlugin {
 					continue;
 				if (c.test(item)) {
 					match = true;
-					items.remove(items.indexOf(item));
+					items.remove(item); // removing by the object
 					break;
 				}
 			}
@@ -228,7 +235,7 @@ public class AutoCraft extends JavaPlugin {
 				return false;
 		}
 		items.removeAll(Arrays.asList(null, new ItemStack(Material.AIR)));
-		return (items.size() == 0 && !items.contains(Material.AIR) && !items.contains(null));
+		return items.size() == 0; // removed always true statements
 	}
 
 	private boolean matchesShaped(ShapedRecipe recipe, List<ItemStack> items) {
@@ -253,7 +260,7 @@ public class AutoCraft extends JavaPlugin {
 		itemsArray = new ItemStack[tmpArray.length][tmpArray[0].length];
 		for (int i = 0; i < tmpArray.length; i++) {
 			for (int j = 0; j < tmpArray[i].length; j++) {
-				itemsArray[i][j] = ItemStack.class.cast(tmpArray[i][j]);
+				itemsArray[i][j] = (ItemStack) tmpArray[i][j]; // native Java casting
 			}
 		}
 		ItemStack[][] itemsArrayGespiegelt = new ItemStack[itemsArray.length][itemsArray[0].length];
@@ -290,7 +297,7 @@ public class AutoCraft extends JavaPlugin {
 	}
 
 	private static Object[][] reduceArray(Object[][] array) {
-		ArrayList<Pos> positionen = new ArrayList<Pos>();
+		ArrayList<Pos> positionen = new ArrayList<>();
 		for (int y = 0; y < array.length; y++)
 			for (int x = 0; x < array[y].length; x++) {
 				if (array[y][x] != null)
@@ -323,7 +330,7 @@ public class AutoCraft extends JavaPlugin {
 	}
 
 	public List<Location> getHollowCube(Location loc, double particleDistance) {
-		List<Location> result = new ArrayList<Location>();
+		List<Location> result = new ArrayList<>();
 		World world = loc.getWorld();
 		double minX = loc.getBlockX();
 		double minY = loc.getBlockY();
@@ -349,19 +356,5 @@ public class AutoCraft extends JavaPlugin {
 			}
 		}
 		return result;
-	}
-}
-
-class Pos {
-	int x = 0;
-	int y = 0;
-
-	public Pos(int x, int y) {
-		this.x = x;
-		this.y = y;
-	}
-
-	public String toString() {
-		return "[" + x + "|" + y + "]";
 	}
 }
