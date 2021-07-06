@@ -1,5 +1,5 @@
 # AutoCraft
-
+[![GitHub release](https://img.shields.io/github/v/release/fliens/AutoCraft.svg)](https://github.com/Fliens/AutoCraft/releases)
 ## How to use the plugin:
 You want to automate everything?
 
