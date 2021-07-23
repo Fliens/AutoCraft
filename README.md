@@ -7,7 +7,7 @@ You want to automate everything?
 
 This plugin takes crafting of your shoulders.
 
-Simply put an item frame with a crafting table in it on a dispenser. Put the recipe of the item you'd like to get crafted in the dispenser.
+Simply put an item frame (or glow item frame) with a crafting table in it on a dispenser. Put the recipe of the item you'd like to get crafted in the dispenser.
 
 ![image](https://user-images.githubusercontent.com/35639879/124355519-d7eb2a00-dc11-11eb-83b4-ec2d03890b83.png)
 

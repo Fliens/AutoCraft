@@ -50,7 +50,7 @@ public class EventListener implements Listener{
 			for (World world : Bukkit.getWorlds()) {
 				for (Chunk chunk : world.getLoadedChunks()) {
 					for (Entity entity : chunk.getEntities()) {
-						if (entity.getType().equals(EntityType.ITEM_FRAME)) {
+						if (entity.getType().equals(EntityType.ITEM_FRAME) || entity.getType().equals(EntityType.GLOW_ITEM_FRAME)) {
 							if (((ItemFrame) entity).getItem().equals(new ItemStack(Material.CRAFTING_TABLE))) {
 								Block autoCrafter = entity.getLocation().getBlock()
 										.getRelative(((ItemFrame) entity).getAttachedFace());
