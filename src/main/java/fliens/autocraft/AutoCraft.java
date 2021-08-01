@@ -190,7 +190,7 @@ public class AutoCraft extends JavaPlugin {
 				}
 			}
 			if(craftSounds)
-				dispenser.getWorld().playSound(dispenser.getLocation(),Sound.BLOCK_DISPENSER_DISPENSE,SoundCategory.BLOCKS,1,1);
+				dispenser.getWorld().playSound(dispenser.getLocation(),Sound.BLOCK_DISPENSER_DISPENSE,SoundCategory.BLOCKS,1,0.8F);
 			if (particles)
 				for (Location loc : getHollowCube(autocrafter.getLocation(), 0.05))
 					loc.getWorld().spawnParticle(Particle.REDSTONE, loc, 2, 0, 0, 0, 0,
