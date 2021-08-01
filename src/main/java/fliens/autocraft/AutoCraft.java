@@ -44,6 +44,8 @@ public class AutoCraft extends JavaPlugin {
 	boolean particles;
 	String redstoneMode;
 	long craftCooldown;
+	boolean dropItemsIfNoOutputContainer;
+	boolean craftSounds;
 	List<Recipe> extraRecipes;
 
 	@Override
@@ -55,6 +57,8 @@ public class AutoCraft extends JavaPlugin {
 		saveDefaultConfig(); // using default config file instead of hard-coding defaults
 		craftCooldown = getConfig().getLong("craftCooldown"); // added more config options
 		particles = getConfig().getBoolean("particles");
+		dropItemsIfNoOutputContainer = getConfig().getBoolean("dropItemsIfNoOutputContainer");
+		craftSounds = getConfig().getBoolean("craftSounds");
 		redstoneMode = getConfig().getString("redstoneMode");
 
 		new EventListener(this);
@@ -104,9 +108,21 @@ public class AutoCraft extends JavaPlugin {
 		BlockState destination = new Location(autocrafter.getWorld(), autocrafter.getX() + targetFace.getModX(),
 				autocrafter.getY() + targetFace.getModY(), autocrafter.getZ() + targetFace.getModZ()).getBlock()
 						.getState();
-		if (source instanceof InventoryHolder && destination instanceof InventoryHolder) {
+
+		Inventory destinationInv = null;
+		if(destination instanceof InventoryHolder)
+			destinationInv = ((InventoryHolder) destination).getInventory();
+		else {
+			if(!dropItemsIfNoOutputContainer)
+				return;// no output container and dropping items is disabled
+			if(!destination.getBlock().getType().isAir())
+				return;// destination is not an InventoryHolder and is not air, cannot craft
+		}
+
+
+		if (source instanceof InventoryHolder) {
 			Inventory sourceInv = ((InventoryHolder) source).getInventory();
-			Inventory destinationInv = ((InventoryHolder) destination).getInventory();
+
 			List<ItemStack> crafterItems = new ArrayList<>(Arrays.asList(dispenser.getInventory().getContents()));
 			if (crafterItems.stream().noneMatch(Objects::nonNull)) // test if crafter is empty
 				return;
@@ -143,13 +159,24 @@ public class AutoCraft extends JavaPlugin {
 			List<ItemStack> output = new ArrayList<>(leftovers);
 			output.add(result);
 
-			if(!Util.canInventoryHold(destinationInv.getContents(),output))
-				return;
+			if (destinationInv != null){
+				if (!Util.canInventoryHold(destinationInv.getContents(), output))
+					return;
 
-			for(ItemStack leftover : leftovers){
-				destinationInv.addItem(leftover.clone());
+				for(ItemStack leftover : leftovers){
+					destinationInv.addItem(leftover.clone());
+				}
+				destinationInv.addItem(result.clone()); // Fix for "Paper" implementation of addItem which rewrites the 'result'
+			}else {
+
+				for(ItemStack leftover : leftovers){
+					destination.getWorld().dropItemNaturally(destination.getLocation(),leftover);
+				}
+				destination.getWorld().dropItemNaturally(destination.getLocation(),result);
 			}
-			destinationInv.addItem(result.clone()); // Fix for "Paper" implementation of addItem which rewrites the 'result'
+
+
+
 			for (ItemStack item : itemstmp) {
 				for (int i = 0; i < item.getAmount(); i++) {
 					for (ItemStack sourceItem : sourceInv.getContents()) {
@@ -162,6 +189,8 @@ public class AutoCraft extends JavaPlugin {
 					}
 				}
 			}
+			if(craftSounds)
+				dispenser.getWorld().playSound(dispenser.getLocation(),Sound.BLOCK_DISPENSER_DISPENSE,SoundCategory.BLOCKS,1,1);
 			if (particles)
 				for (Location loc : getHollowCube(autocrafter.getLocation(), 0.05))
 					loc.getWorld().spawnParticle(Particle.REDSTONE, loc, 2, 0, 0, 0, 0,

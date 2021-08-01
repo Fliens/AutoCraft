@@ -1,0 +1,5 @@
+craftCooldown: 8
+redstoneMode: 'indirect'
+particles: true
+dropItemsIfNoOutputContainer: true
+craftSounds: true
