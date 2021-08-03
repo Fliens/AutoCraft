@@ -156,6 +156,8 @@ public class AutoCraft extends JavaPlugin {
 			if (result == null)
 				return;
 
+			result = result.clone(); //I can't believe this is necessary but it is...
+
 			List<ItemStack> output = new ArrayList<>(leftovers);
 			output.add(result);
 
