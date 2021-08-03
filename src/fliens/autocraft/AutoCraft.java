@@ -18,15 +18,7 @@
  */
 package fliens.autocraft;
 
-import java.util.*;
-
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Color;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Particle;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
@@ -34,15 +26,11 @@ import org.bukkit.block.Dispenser;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemFrame;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.Recipe;
-import org.bukkit.inventory.RecipeChoice;
-import org.bukkit.inventory.ShapedRecipe;
-import org.bukkit.inventory.ShapelessRecipe;
+import org.bukkit.inventory.*;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
+
+import java.util.*;
 
 public class AutoCraft extends JavaPlugin {
 
@@ -53,10 +41,10 @@ public class AutoCraft extends JavaPlugin {
 	@Override
 	public void onEnable() {
 		super.onEnable();
-		getLogger().info("AutoCraft plugin started"); // Using logger instead of System.out
+		getLogger().info("AutoCraft plugin started");
 
-		saveDefaultConfig(); // using default config file instead of hard-coding defaults
-		craftCooldown = getConfig().getLong("craftCooldown"); // added more config options
+		saveDefaultConfig();
+		craftCooldown = getConfig().getLong("craftCooldown");
 		particles = getConfig().getBoolean("particles");
 		redstoneMode = getConfig().getString("redstoneMode");
 
@@ -97,9 +85,9 @@ public class AutoCraft extends JavaPlugin {
 		getLogger().info("AutoCraft plugin stopped");
 	}
 
-	private void handleAutoCrafter(Block autocrafter) { // changed to void because not using the returned value
+	private void handleAutoCrafter(Block autocrafter) {
 		Dispenser dispenser = (Dispenser) autocrafter.getState();
-		BlockFace targetFace = ((org.bukkit.block.data.type.Dispenser) autocrafter.getBlockData()).getFacing(); // removed deprecated material.Dispenser
+		BlockFace targetFace = ((org.bukkit.block.data.type.Dispenser) autocrafter.getBlockData()).getFacing();
 		BlockState source = new Location(autocrafter.getWorld(),
 				autocrafter.getX() + targetFace.getOppositeFace().getModX(),
 				autocrafter.getY() + targetFace.getOppositeFace().getModY(),
@@ -113,7 +101,9 @@ public class AutoCraft extends JavaPlugin {
 			List<ItemStack> crafterItems = new ArrayList<>(Arrays.asList(dispenser.getInventory().getContents()));
 			if (crafterItems.stream().noneMatch(Objects::nonNull)) // test if crafter is empty
 				return;
+
 			List<ItemStack> itemstmp = new ArrayList<>();
+			List<ItemStack> itemsrem = new ArrayList<>();
 			for (ItemStack item : crafterItems) {
 				if (item != null) {
 					if (itemstmp.stream().noneMatch(i -> i.isSimilar(item))) {
@@ -128,6 +118,11 @@ public class AutoCraft extends JavaPlugin {
 						ItemStack tmpitem = new ItemStack(item);
 						tmpitem.setAmount(count);
 						itemstmp.add(tmpitem);
+
+						Material remMat = item.getType().getCraftingRemainingItem(); // fix for lost bottles/buckets by avixk
+						if(remMat != null && !remMat.isAir()){
+							itemsrem.add(new ItemStack(remMat, count));
+						}
 					}
 				}
 			}
@@ -137,21 +132,14 @@ public class AutoCraft extends JavaPlugin {
 			ItemStack result = getCraftResult(crafterItems);
 			if (result == null)
 				return;
-			boolean destHasSpace = false;
-			for (ItemStack destItem : destinationInv.getContents()) {
-				if (destItem == null) {
-					destHasSpace = true;
-					break;
-				} else if (destItem.isSimilar(result)) {
-					if (destItem.getAmount() + result.getAmount() <= destItem.getMaxStackSize()) {
-						destHasSpace = true;
-						break;
-					}
-				}
-			}
-			if (!destHasSpace)// success
+
+			ArrayList<ItemStack> output = new ArrayList<>(); // Making a list of items to add to the output container
+			output.add(result.clone());
+			output.addAll(itemsrem);
+
+			if(!addItemsIfCan(destinationInv, output)) // Trying to add
 				return;
-			destinationInv.addItem(result.clone()); // Fix for "Paper" implementation of addItem which rewrites the 'result'
+
 			for (ItemStack item : itemstmp) {
 				for (int i = 0; i < item.getAmount(); i++) {
 					for (ItemStack sourceItem : sourceInv.getContents()) {
@@ -167,8 +155,22 @@ public class AutoCraft extends JavaPlugin {
 			if (particles)
 				for (Location loc : getHollowCube(autocrafter.getLocation(), 0.05))
 					loc.getWorld().spawnParticle(Particle.REDSTONE, loc, 2, 0, 0, 0, 0,
-							new Particle.DustOptions(Color.LIME, 0.2F)); // changed the color to be more vibrant
+							new Particle.DustOptions(Color.LIME, 0.2F));
 		}
+	}
+
+	private boolean addItemsIfCan(Inventory inventory, ArrayList<ItemStack> items){ // I think this needs explanation
+		ItemStack[] mutableCont = inventory.getContents(); // We have to manually clone each ItemStack to prevent them from
+		ItemStack[] contents = inventory.getContents(); // mutation when adding items. This is the backup inventory
+		for(int i = 0; i < mutableCont.length; i++) contents[i] = mutableCont[i] == null ? null : mutableCont[i].clone();
+		for(ItemStack item : items){
+			Map<Integer, ItemStack> left = inventory.addItem(item.clone()); // addItem() returns a map of items which didn`t fit
+			if(!left.isEmpty()){
+				inventory.setStorageContents(contents);// if so, we rollback the inventory
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private final Map<List<ItemStack>, ItemStack> cache = new HashMap<>();
@@ -176,7 +178,7 @@ public class AutoCraft extends JavaPlugin {
 	private ItemStack getCraftResult(List<ItemStack> items) {
 		if (cache.containsKey(items))
 			return cache.get(items);
-		List<Recipe> recipes = new ArrayList<>(); // moved to local from private global
+		List<Recipe> recipes = new ArrayList<>();
 		Iterator<Recipe> it = getServer().recipeIterator();
 		while (it.hasNext()) {
 			Recipe rec = it.next();
@@ -190,7 +192,7 @@ public class AutoCraft extends JavaPlugin {
 		for (ItemStack itemstack : items) {
 			if (itemstack != null) {
 				notNull = true;
-				break; // added fast break when found an item
+				break;
 			}
 		}
 		if (!notNull) {
@@ -227,7 +229,7 @@ public class AutoCraft extends JavaPlugin {
 					continue;
 				if (c.test(item)) {
 					match = true;
-					items.remove(item); // removing by the object
+					items.remove(item);
 					break;
 				}
 			}
@@ -235,7 +237,7 @@ public class AutoCraft extends JavaPlugin {
 				return false;
 		}
 		items.removeAll(Arrays.asList(null, new ItemStack(Material.AIR)));
-		return items.size() == 0; // removed always true statements
+		return items.size() == 0;
 	}
 
 	private boolean matchesShaped(ShapedRecipe recipe, List<ItemStack> items) {
@@ -260,7 +262,7 @@ public class AutoCraft extends JavaPlugin {
 		itemsArray = new ItemStack[tmpArray.length][tmpArray[0].length];
 		for (int i = 0; i < tmpArray.length; i++) {
 			for (int j = 0; j < tmpArray[i].length; j++) {
-				itemsArray[i][j] = (ItemStack) tmpArray[i][j]; // native Java casting
+				itemsArray[i][j] = (ItemStack) tmpArray[i][j];
 			}
 		}
 		ItemStack[][] itemsArrayGespiegelt = new ItemStack[itemsArray.length][itemsArray[0].length];
