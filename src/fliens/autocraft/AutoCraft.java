@@ -38,6 +38,8 @@ public class AutoCraft extends JavaPlugin {
 	String redstoneMode;
 	long craftCooldown;
 
+	ArrayList<Recipe> recipes = new ArrayList<>();
+
 	@Override
 	public void onEnable() {
 		super.onEnable();
@@ -47,6 +49,8 @@ public class AutoCraft extends JavaPlugin {
 		craftCooldown = getConfig().getLong("craftCooldown");
 		particles = getConfig().getBoolean("particles");
 		redstoneMode = getConfig().getString("redstoneMode");
+
+		recipes = collectRecipes();
 
 		new EventListener(this);
 		BukkitScheduler scheduler = getServer().getScheduler();
@@ -83,6 +87,16 @@ public class AutoCraft extends JavaPlugin {
 	public void onDisable() {
 		super.onDisable();
 		getLogger().info("AutoCraft plugin stopped");
+	}
+
+	public ArrayList<Recipe> collectRecipes(){
+		ArrayList<Recipe> recipes = new ArrayList<>();
+		Iterator<Recipe> it = getServer().recipeIterator();
+		while (it.hasNext()) {
+			Recipe recipe = it.next();
+			recipes.add(recipe);
+		}
+		return recipes;
 	}
 
 	private void handleAutoCrafter(Block autocrafter) {
@@ -178,12 +192,6 @@ public class AutoCraft extends JavaPlugin {
 	private ItemStack getCraftResult(List<ItemStack> items) {
 		if (cache.containsKey(items))
 			return cache.get(items);
-		List<Recipe> recipes = new ArrayList<>();
-		Iterator<Recipe> it = getServer().recipeIterator();
-		while (it.hasNext()) {
-			Recipe rec = it.next();
-			recipes.add(rec);
-		}
 
 		if (items.size() != 9) { // list correct?
 			return null;
