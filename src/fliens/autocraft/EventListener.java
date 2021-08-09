@@ -36,37 +36,37 @@ import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
-public class EventListener implements Listener{
-	
-	public EventListener(Plugin plugin) { // changed to generic Plugin
-		plugin.getServer().getPluginManager().registerEvents(this, plugin);
-	}
-	
-	@EventHandler
-	public void onItemMove(BlockDispenseEvent e) {
-		if(e.getBlock().getType().equals(Material.DISPENSER)) {
-			List<Block> autoCrafters = new ArrayList<>();
+public class EventListener implements Listener {
 
-			for (World world : Bukkit.getWorlds()) {
-				for (Chunk chunk : world.getLoadedChunks()) {
-					for (Entity entity : chunk.getEntities()) {
-						if (entity.getType().equals(EntityType.ITEM_FRAME) || entity.getType().equals(EntityType.GLOW_ITEM_FRAME)) {
-							if (((ItemFrame) entity).getItem().equals(new ItemStack(Material.CRAFTING_TABLE))) {
-								Block autoCrafter = entity.getLocation().getBlock()
-										.getRelative(((ItemFrame) entity).getAttachedFace());
-								if (!autoCrafters.contains(autoCrafter)
-										&& autoCrafter.getType().equals(Material.DISPENSER)) {
-									autoCrafters.add(autoCrafter);
-								}
-							}
-						}
-					}
-				}
-			}
-			if(autoCrafters.contains(e.getBlock())) {
-				e.setCancelled(true);
-			}
-		}
-	}
-	
+    public EventListener(Plugin plugin) { // changed to generic Plugin
+        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+    }
+
+    @EventHandler
+    public void onItemMove(BlockDispenseEvent e) {
+        if (e.getBlock().getType().equals(Material.DISPENSER)) {
+            List<Block> autoCrafters = new ArrayList<>();
+
+            for (World world : Bukkit.getWorlds()) {
+                for (Chunk chunk : world.getLoadedChunks()) {
+                    for (Entity entity : chunk.getEntities()) {
+                        if (entity.getType().equals(EntityType.ITEM_FRAME) || entity.getType().equals(EntityType.GLOW_ITEM_FRAME)) {
+                            if (((ItemFrame) entity).getItem().equals(new ItemStack(Material.CRAFTING_TABLE))) {
+                                Block autoCrafter = entity.getLocation().getBlock()
+                                        .getRelative(((ItemFrame) entity).getAttachedFace());
+                                if (!autoCrafters.contains(autoCrafter)
+                                        && autoCrafter.getType().equals(Material.DISPENSER)) {
+                                    autoCrafters.add(autoCrafter);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (autoCrafters.contains(e.getBlock())) {
+                e.setCancelled(true);
+            }
+        }
+    }
+
 }
