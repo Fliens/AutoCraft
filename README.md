@@ -8,7 +8,7 @@ You want to automate everything?
 
 ![image](https://user-images.githubusercontent.com/35639879/124355511-d0c41c00-dc11-11eb-82d2-618245aa4b3b.png)
 
-This plugin takes crafting of your shoulders.
+This plugin takes care of the crafting.
 
 Simply put an item frame (or glow item frame) with a crafting table in it on a dispenser. Put the recipe of the item
 you'd like to get crafted in the dispenser.
