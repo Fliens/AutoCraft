@@ -56,32 +56,18 @@ public class AutoCraft extends JavaPlugin {
         new EventListener(this);
         BukkitScheduler scheduler = getServer().getScheduler();
         scheduler.scheduleSyncRepeatingTask(this, () -> {
-            List<Block> autoCrafters = new ArrayList<>();
-            for (World world : Bukkit.getWorlds()) {
-                for (Chunk chunk : world.getLoadedChunks()) {
-                    for (Entity entity : chunk.getEntities()) {
-                        if (entity.getType().equals(EntityType.ITEM_FRAME) || entity.getType().equals(EntityType.GLOW_ITEM_FRAME)) {
-                            if (((ItemFrame) entity).getItem().equals(new ItemStack(Material.CRAFTING_TABLE))) {
-                                Block autoCrafter = entity.getLocation().getBlock()
-                                        .getRelative(((ItemFrame) entity).getAttachedFace());
-                                if (!autoCrafters.contains(autoCrafter)
-                                        && autoCrafter.getType().equals(Material.DISPENSER)) {
-                                    autoCrafters.add(autoCrafter);
-                                }
-                            }
-                        }
-                    }
-                }
-            } // redstone powering type check
+
+            ArrayList<Block> autoCrafters = collectAutoCrafters();
+
             for (final Block autocrafter : autoCrafters) {
-                if (!redstoneMode.equalsIgnoreCase("disabled")) {
+                if (!redstoneMode.equalsIgnoreCase("disabled")) { // redstone powering type check
                     if ((redstoneMode.equalsIgnoreCase("indirect") && autocrafter.isBlockIndirectlyPowered()) || autocrafter.isBlockPowered()) {
                         continue;
                     }
                 }
                 handleAutoCrafter(autocrafter);
             }
-        }, 0L, craftCooldown);// configurable cooldown
+        }, 0L, craftCooldown); // configurable cooldown
     }
 
     @Override
@@ -89,6 +75,42 @@ public class AutoCraft extends JavaPlugin {
         super.onDisable();
         getLogger().info("AutoCraft plugin stopped");
     }
+
+    /*
+     * TODO: Switch to Event-based crafter collection during operation
+     * Next method is too resource-heavy to execute every craft tick, so it eventually should be converted
+     * to an Event-based system. We can check item frame manipulation events and add/remove crafters only when needed
+     * thus removing the necessity to update crafter list every craft tick.
+     */
+
+    /** This method returns an ArrayList of all autocrafters in the world
+     * @return ArrayList of autocrafters
+     **/
+
+    public static ArrayList<Block> collectAutoCrafters() {
+        ArrayList<Block> autoCrafters = new ArrayList<>();
+        for (World world : Bukkit.getWorlds()) {
+            for (Chunk chunk : world.getLoadedChunks()) {
+                for (Entity entity : chunk.getEntities()) {
+                    if (entity.getType().equals(EntityType.ITEM_FRAME) || entity.getType().equals(EntityType.GLOW_ITEM_FRAME)) {
+                        if (((ItemFrame) entity).getItem().equals(new ItemStack(Material.CRAFTING_TABLE))) {
+                            Block autoCrafter = entity.getLocation().getBlock()
+                                    .getRelative(((ItemFrame) entity).getAttachedFace());
+                            if (!autoCrafters.contains(autoCrafter)
+                                    && autoCrafter.getType().equals(Material.DISPENSER)) {
+                                autoCrafters.add(autoCrafter);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return autoCrafters;
+    }
+
+    /** This method returns an ArrayList of all available recipes (including extra)
+     * @return ArrayList of all recipes
+     **/
 
     public ArrayList<Recipe> collectRecipes() {
         ArrayList<Recipe> recipes = new ArrayList<>();
@@ -104,6 +126,10 @@ public class AutoCraft extends JavaPlugin {
 
         return recipes;
     }
+
+    /** This method returns an ArrayList of extra recipes
+     * @return ArrayList of extra recipes
+     **/
 
     public ArrayList<Recipe> collectExtraRecipes() {
         ArrayList<Recipe> recipes = new ArrayList<>();
@@ -139,6 +165,10 @@ public class AutoCraft extends JavaPlugin {
         return recipes;
     }
 
+    /** Main method that updates a specified autocrafter
+     * @param autocrafter specified autocrafter
+     **/
+
     private void handleAutoCrafter(Block autocrafter) {
         Dispenser dispenser = (Dispenser) autocrafter.getState();
         BlockFace targetFace = ((org.bukkit.block.data.type.Dispenser) autocrafter.getBlockData()).getFacing();
@@ -149,10 +179,12 @@ public class AutoCraft extends JavaPlugin {
         BlockState destination = new Location(autocrafter.getWorld(), autocrafter.getX() + targetFace.getModX(),
                 autocrafter.getY() + targetFace.getModY(), autocrafter.getZ() + targetFace.getModZ()).getBlock()
                 .getState();
+
         if (source instanceof InventoryHolder && destination instanceof InventoryHolder) {
             Inventory sourceInv = ((InventoryHolder) source).getInventory();
             Inventory destinationInv = ((InventoryHolder) destination).getInventory();
             List<ItemStack> crafterItems = new ArrayList<>(Arrays.asList(dispenser.getInventory().getContents()));
+
             if (crafterItems.stream().noneMatch(Objects::nonNull)) // test if crafter is empty
                 return;
 
@@ -213,6 +245,12 @@ public class AutoCraft extends JavaPlugin {
         }
     }
 
+    /** This method adds items to an inventory
+     * @param inventory inventory to add items to
+     * @param items an ArrayList of items to add
+     * @return true if items were added, false if items weren't added because some of them didn't fit
+     **/
+
     private boolean addItemsIfCan(Inventory inventory, ArrayList<ItemStack> items) { // I think this needs explanation
         ItemStack[] mutableCont = inventory.getContents(); // We have to manually clone each ItemStack to prevent them from
         ItemStack[] contents = inventory.getContents(); // mutation when adding items. This is the backup inventory
@@ -228,7 +266,40 @@ public class AutoCraft extends JavaPlugin {
         return true;
     }
 
+    /*
+     * Warning! testIfCanFit() method should be only used if you don`t need to add items.
+     * In cases when you have to add items please use addItemsIfCan()
+     */
+
+    /** This method is similar to addItemsifCan() with only one difference - it doesn't add items
+     * @param inventory inventory to add items to
+     * @param items an ArrayList of items to add
+     * @return true if items can fit into the inventory, false if not
+     * @see AutoCraft#addItemsIfCan(Inventory inventory, ArrayList items)
+     **/
+
+    private boolean testIfCanFit(Inventory inventory, ArrayList<ItemStack> items) {
+        ItemStack[] mutableCont = inventory.getContents();
+        ItemStack[] contents = inventory.getContents();
+        for (int i = 0; i < mutableCont.length; i++)
+            contents[i] = mutableCont[i] == null ? null : mutableCont[i].clone();
+        for (ItemStack item : items) {
+            Map<Integer, ItemStack> left = inventory.addItem(item.clone());
+            if (!left.isEmpty()) {
+                inventory.setStorageContents(contents);
+                return false;
+            }
+        }
+        inventory.setStorageContents(contents);
+        return true;
+    }
+
     private final Map<List<ItemStack>, ItemStack> cache = new HashMap<>();
+
+    /** This method returns a craft result for a list of input items
+     * @param items an ArrayList of input items
+     * @return crafting result (ItemStack)
+     **/
 
     private ItemStack getCraftResult(List<ItemStack> items) {
         if (cache.containsKey(items))
@@ -268,6 +339,12 @@ public class AutoCraft extends JavaPlugin {
         return null;
     }
 
+    /** This method checks if a list of items matches a specified shapeless recipe
+     * @param choice specified recipe
+     * @param items a list of items to check
+     * @return true if recipe matches, false if not
+     **/
+
     private boolean matchesShapeless(List<RecipeChoice> choice, List<ItemStack> items) {
         items = new ArrayList<>(items);
         for (RecipeChoice c : choice) {
@@ -288,6 +365,12 @@ public class AutoCraft extends JavaPlugin {
         items.removeAll(Arrays.asList(null, new ItemStack(Material.AIR)));
         return items.size() == 0;
     }
+
+    /** This method checks if a list of items matches a specified shaped recipe
+     * @param recipe specified recipe
+     * @param items a list of items to check
+     * @return true if recipe matches, false if not
+     **/
 
     private boolean matchesShaped(ShapedRecipe recipe, List<ItemStack> items) {
         RecipeChoice[][] recipeArray = new RecipeChoice[recipe.getShape().length][recipe.getShape()[0].length()];
@@ -314,15 +397,15 @@ public class AutoCraft extends JavaPlugin {
                 itemsArray[i][j] = (ItemStack) tmpArray[i][j];
             }
         }
-        ItemStack[][] itemsArrayGespiegelt = new ItemStack[itemsArray.length][itemsArray[0].length];
+        ItemStack[][] itemsArrayMirrored = new ItemStack[itemsArray.length][itemsArray[0].length];
         for (int i = 0; i < itemsArray.length; i++) {
             int jPos = 0;
             for (int j = itemsArray[i].length - 1; j >= 0; j--) {
-                itemsArrayGespiegelt[i][jPos] = itemsArray[i][j];
+                itemsArrayMirrored[i][jPos] = itemsArray[i][j];
                 jPos++;
             }
         }
-        return match(itemsArray, recipeArray) || match(itemsArrayGespiegelt, recipeArray);
+        return match(itemsArray, recipeArray) || match(itemsArrayMirrored, recipeArray);
     }
 
     private boolean match(ItemStack[][] itemsArray, RecipeChoice[][] recipeArray) {
@@ -348,16 +431,16 @@ public class AutoCraft extends JavaPlugin {
     }
 
     private static Object[][] reduceArray(Object[][] array) {
-        ArrayList<Pos> positionen = new ArrayList<>();
+        ArrayList<Pos> positions = new ArrayList<>();
         for (int y = 0; y < array.length; y++)
             for (int x = 0; x < array[y].length; x++) {
                 if (array[y][x] != null)
-                    positionen.add(new Pos(x, y));
+                    positions.add(new Pos(x, y));
             }
 
         Pos upperLeft = new Pos(array.length - 1, array[0].length - 1);
         Pos lowerRight = new Pos(0, 0);
-        for (Pos pos : positionen) {
+        for (Pos pos : positions) {
             if (pos.y < upperLeft.y)
                 upperLeft.y = pos.y;
             if (pos.x < upperLeft.x)
@@ -379,6 +462,12 @@ public class AutoCraft extends JavaPlugin {
         }
         return clean;
     }
+
+    /** This method returns a list of coordinates for particles around a block
+     * @param loc block position
+     * @param  particleDistance distance between particles
+     * @return a list of particle positions
+     **/
 
     public List<Location> getHollowCube(Location loc, double particleDistance) {
         List<Location> result = new ArrayList<>();
