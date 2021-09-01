@@ -36,6 +36,18 @@ public class Util {
         }
         return pool.size() == 0;
     }
+    public static boolean isInventoryFull(ItemStack[] contents){
+        for(ItemStack item : contents.clone()){
+            if(item == null || item.getAmount() < item.getMaxStackSize()) return false;
+        }
+        return true;
+    }
+    public static boolean isInventoryEmpty(ItemStack[] contents){
+        for(ItemStack item : contents.clone()){
+            if(item != null && !item.getType().isAir()) return false;
+        }
+        return true;
+    }
 
     public static boolean isSimilar(ItemStack item1, ItemStack item2){
         return item1.isSimilar(item2);

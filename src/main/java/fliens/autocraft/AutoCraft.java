@@ -28,6 +28,7 @@ import org.bukkit.block.Dispenser;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemFrame;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -42,7 +43,7 @@ import org.bukkit.scheduler.BukkitScheduler;
 public class AutoCraft extends JavaPlugin {
 
 	boolean particles;
-	String redstoneMode;
+	RedstoneMode redstoneMode;
 	long craftCooldown;
 	boolean dropItemsIfNoOutputContainer;
 	boolean craftSounds;
@@ -59,15 +60,21 @@ public class AutoCraft extends JavaPlugin {
 		particles = getConfig().getBoolean("particles");
 		dropItemsIfNoOutputContainer = getConfig().getBoolean("dropItemsIfNoOutputContainer");
 		craftSounds = getConfig().getBoolean("craftSounds");
-		redstoneMode = getConfig().getString("redstoneMode");
+		try{
+			redstoneMode = RedstoneMode.valueOf(getConfig().getString("redstoneMode").toUpperCase());
+		}catch (Exception e){
+			redstoneMode = RedstoneMode.DISABLED;
+		}
 
 		new EventListener(this);
 		BukkitScheduler scheduler = getServer().getScheduler();
 		scheduler.scheduleSyncRepeatingTask(this, () -> {
+			long time = System.currentTimeMillis();
 			List<Block> autoCrafters = new ArrayList<>();
 			for (World world : Bukkit.getWorlds()) {
-				for (Chunk chunk : world.getLoadedChunks()) {
-					for (Entity entity : chunk.getEntities()) {
+				//for (Chunk chunk : world.getLoadedChunks()) {
+					for (Entity entity : world.getEntities()) {
+						if(!entity.getLocation().getChunk().isLoaded())continue;
 						if (entity.getType().equals(EntityType.ITEM_FRAME) || entity.getType().equals(EntityType.GLOW_ITEM_FRAME)) {
 							if (((ItemFrame) entity).getItem().equals(new ItemStack(Material.CRAFTING_TABLE))) {
 								Block autoCrafter = entity.getLocation().getBlock()
@@ -79,11 +86,13 @@ public class AutoCraft extends JavaPlugin {
 							}
 						}
 					}
-				}
+				//}
 			} // redstone powering type check
 			for (final Block autocrafter : autoCrafters) {
-				if (!redstoneMode.equalsIgnoreCase("disabled")) {
-					if ((redstoneMode.equalsIgnoreCase("indirect") && autocrafter.isBlockIndirectlyPowered()) || autocrafter.isBlockPowered()) {
+				if (redstoneMode != RedstoneMode.DISABLED) {
+					if ((redstoneMode == RedstoneMode.INDIRECT && autocrafter.isBlockIndirectlyPowered()) || autocrafter.isBlockPowered()) {
+						continue;
+					}else if ((redstoneMode == RedstoneMode.DIRECT && autocrafter.isBlockPowered())) {
 						continue;
 					}
 				}
@@ -110,9 +119,11 @@ public class AutoCraft extends JavaPlugin {
 						.getState();
 
 		Inventory destinationInv = null;
-		if(destination instanceof InventoryHolder)
+		if(destination instanceof InventoryHolder){
 			destinationInv = ((InventoryHolder) destination).getInventory();
-		else {
+			if(Util.isInventoryFull(destinationInv.getContents()))
+				return;// destination is full, don't need to go any farther. (This is just to help lag)
+		} else {
 			if(!dropItemsIfNoOutputContainer)
 				return;// no output container and dropping items is disabled
 			if(!destination.getBlock().getType().isAir())
@@ -122,6 +133,8 @@ public class AutoCraft extends JavaPlugin {
 
 		if (source instanceof InventoryHolder) {
 			Inventory sourceInv = ((InventoryHolder) source).getInventory();
+			if(Util.isInventoryEmpty(sourceInv.getContents()))
+				return;// source is empty, don't need to go any farther. (This is just to help lag)
 
 			List<ItemStack> crafterItems = new ArrayList<>(Arrays.asList(dispenser.getInventory().getContents()));
 			if (crafterItems.stream().noneMatch(Objects::nonNull)) // test if crafter is empty

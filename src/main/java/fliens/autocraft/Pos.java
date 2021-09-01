@@ -19,7 +19,7 @@
 
 package fliens.autocraft;
 
-class Pos { // Moved to a separate file
+public class Pos { // Moved to a separate file
     int x;
     int y;
 
