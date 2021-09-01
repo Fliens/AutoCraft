@@ -71,7 +71,6 @@ public class AutoCraft extends JavaPlugin {
 			long time = System.currentTimeMillis();
 			List<Block> autoCrafters = new ArrayList<>();
 			for (World world : Bukkit.getWorlds()) {
-				//for (Chunk chunk : world.getLoadedChunks()) {
 					for (Entity entity : world.getEntities()) {
 						if(!entity.getLocation().getChunk().isLoaded())continue;
 						if (entity.getType().equals(EntityType.ITEM_FRAME) || entity.getType().equals(EntityType.GLOW_ITEM_FRAME)) {
@@ -85,13 +84,11 @@ public class AutoCraft extends JavaPlugin {
 							}
 						}
 					}
-				//}
-			} // redstone powering type check
+			}
+			// redstone powering type check
 			for (final Block autocrafter : autoCrafters) {
 				if (redstoneMode != RedstoneMode.DISABLED) {
 					if ((redstoneMode == RedstoneMode.INDIRECT && autocrafter.isBlockIndirectlyPowered()) || autocrafter.isBlockPowered()) {
-						continue;
-					}else if ((redstoneMode == RedstoneMode.DIRECT && autocrafter.isBlockPowered())) {
 						continue;
 					}
 				}
