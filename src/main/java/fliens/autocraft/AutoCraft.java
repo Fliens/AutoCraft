@@ -68,7 +68,6 @@ public class AutoCraft extends JavaPlugin {
 		new EventListener(this);
 		BukkitScheduler scheduler = getServer().getScheduler();
 		scheduler.scheduleSyncRepeatingTask(this, () -> {
-			long time = System.currentTimeMillis();
 			List<Block> autoCrafters = new ArrayList<>();
 			for (World world : Bukkit.getWorlds()) {
 					for (Entity entity : world.getEntities()) {
