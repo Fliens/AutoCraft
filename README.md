@@ -20,7 +20,7 @@ inventory in front of it. Time between actions can be configured (*default is 8 
 
 ![image](https://user-images.githubusercontent.com/35639879/124355522-dde10b00-dc11-11eb-887f-480ef309301e.png)
 
-Works with shaped and shapeless recipes **from the recipe book** and with every block that has an inventory.
+Works with shaped and shapeless recipes **from the recipe book** (as well as with some extra recipes like firework rockets) and with every block that has an inventory.
 ![image](https://user-images.githubusercontent.com/35639879/124355528-e33e5580-dc11-11eb-98c1-ff938bec1842.png)
 
 You can also find the description on SpigotMC: https://www.spigotmc.org/resources/autocraft.75618/
