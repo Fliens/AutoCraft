@@ -56,7 +56,6 @@ public class AutoCraft extends JavaPlugin {
         new EventListener(this);
         BukkitScheduler scheduler = getServer().getScheduler();
         scheduler.scheduleSyncRepeatingTask(this, () -> {
-
             ArrayList<Block> autoCrafters = collectAutoCrafters();
 
             for (final Block autocrafter : autoCrafters) {
@@ -83,23 +82,23 @@ public class AutoCraft extends JavaPlugin {
      * thus removing the necessity to update crafter list every craft tick.
      */
 
-    /** This method returns an ArrayList of all autocrafters in the world
+    /**
+     * This method returns an ArrayList of all autocrafters in the world
+     *
      * @return ArrayList of autocrafters
      **/
 
     public static ArrayList<Block> collectAutoCrafters() {
         ArrayList<Block> autoCrafters = new ArrayList<>();
         for (World world : Bukkit.getWorlds()) {
-            for (Chunk chunk : world.getLoadedChunks()) {
-                for (Entity entity : chunk.getEntities()) {
-                    if (entity.getType().equals(EntityType.ITEM_FRAME) || entity.getType().equals(EntityType.GLOW_ITEM_FRAME)) {
-                        if (((ItemFrame) entity).getItem().equals(new ItemStack(Material.CRAFTING_TABLE))) {
-                            Block autoCrafter = entity.getLocation().getBlock()
-                                    .getRelative(((ItemFrame) entity).getAttachedFace());
-                            if (!autoCrafters.contains(autoCrafter)
-                                    && autoCrafter.getType().equals(Material.DISPENSER)) {
-                                autoCrafters.add(autoCrafter);
-                            }
+            for (Entity entity : world.getEntities()) { // avixk`s fix
+                if (entity.getType().equals(EntityType.ITEM_FRAME) || entity.getType().equals(EntityType.GLOW_ITEM_FRAME)) {
+                    if (((ItemFrame) entity).getItem().equals(new ItemStack(Material.CRAFTING_TABLE))) {
+                        Block autoCrafter = entity.getLocation().getBlock()
+                                .getRelative(((ItemFrame) entity).getAttachedFace());
+                        if (!autoCrafters.contains(autoCrafter)
+                                && autoCrafter.getType().equals(Material.DISPENSER)) {
+                            autoCrafters.add(autoCrafter);
                         }
                     }
                 }
@@ -108,7 +107,9 @@ public class AutoCraft extends JavaPlugin {
         return autoCrafters;
     }
 
-    /** This method returns an ArrayList of all available recipes (including extra)
+    /**
+     * This method returns an ArrayList of all available recipes (including extra)
+     *
      * @return ArrayList of all recipes
      **/
 
@@ -127,7 +128,9 @@ public class AutoCraft extends JavaPlugin {
         return recipes;
     }
 
-    /** This method returns an ArrayList of extra recipes
+    /**
+     * This method returns an ArrayList of extra recipes
+     *
      * @return ArrayList of extra recipes
      **/
 
@@ -165,7 +168,9 @@ public class AutoCraft extends JavaPlugin {
         return recipes;
     }
 
-    /** Main method that updates a specified autocrafter
+    /**
+     * Main method that updates a specified autocrafter
+     *
      * @param autocrafter specified autocrafter
      **/
 
@@ -245,9 +250,11 @@ public class AutoCraft extends JavaPlugin {
         }
     }
 
-    /** This method adds items to an inventory
+    /**
+     * This method adds items to an inventory
+     *
      * @param inventory inventory to add items to
-     * @param items an ArrayList of items to add
+     * @param items     an ArrayList of items to add
      * @return true if items were added, false if items weren't added because some of them didn't fit
      **/
 
@@ -271,9 +278,11 @@ public class AutoCraft extends JavaPlugin {
      * In cases when you have to add items please use addItemsIfCan()
      */
 
-    /** This method is similar to addItemsifCan() with only one difference - it doesn't add items
+    /**
+     * This method is similar to addItemsifCan() with only one difference - it doesn't add items
+     *
      * @param inventory inventory to add items to
-     * @param items an ArrayList of items to add
+     * @param items     an ArrayList of items to add
      * @return true if items can fit into the inventory, false if not
      * @see AutoCraft#addItemsIfCan(Inventory inventory, ArrayList items)
      **/
@@ -296,7 +305,9 @@ public class AutoCraft extends JavaPlugin {
 
     private final Map<List<ItemStack>, ItemStack> cache = new HashMap<>();
 
-    /** This method returns a craft result for a list of input items
+    /**
+     * This method returns a craft result for a list of input items
+     *
      * @param items an ArrayList of input items
      * @return crafting result (ItemStack)
      **/
@@ -339,9 +350,11 @@ public class AutoCraft extends JavaPlugin {
         return null;
     }
 
-    /** This method checks if a list of items matches a specified shapeless recipe
+    /**
+     * This method checks if a list of items matches a specified shapeless recipe
+     *
      * @param choice specified recipe
-     * @param items a list of items to check
+     * @param items  a list of items to check
      * @return true if recipe matches, false if not
      **/
 
@@ -366,9 +379,11 @@ public class AutoCraft extends JavaPlugin {
         return items.size() == 0;
     }
 
-    /** This method checks if a list of items matches a specified shaped recipe
+    /**
+     * This method checks if a list of items matches a specified shaped recipe
+     *
      * @param recipe specified recipe
-     * @param items a list of items to check
+     * @param items  a list of items to check
      * @return true if recipe matches, false if not
      **/
 
@@ -463,9 +478,11 @@ public class AutoCraft extends JavaPlugin {
         return clean;
     }
 
-    /** This method returns a list of coordinates for particles around a block
-     * @param loc block position
-     * @param  particleDistance distance between particles
+    /**
+     * This method returns a list of coordinates for particles around a block
+     *
+     * @param loc              block position
+     * @param particleDistance distance between particles
      * @return a list of particle positions
      **/
 
