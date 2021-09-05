@@ -1,6 +1,9 @@
 # AutoCraft
 
 [![GitHub release](https://img.shields.io/github/v/release/fliens/AutoCraft.svg)](https://github.com/Fliens/AutoCraft/releases)
+![Dev Builds](https://github.com/Fliens/AutoCraft/actions/workflows/prerelease.yml/badge.svg)
+![Release](https://github.com/Fliens/AutoCraft/actions/workflows/release.yml/badge.svg)
+
 
 ## How to use the plugin:
 

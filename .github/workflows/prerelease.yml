@@ -1,5 +1,5 @@
 ---
-name: "prerelease"
+name: "Development Builds"
 
 on:
   push:
