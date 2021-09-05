@@ -1,0 +1,36 @@
+---
+name: "tagged-release"
+
+on:
+  push:
+    tags:
+      - "*.*.*"
+    paths-ignore:
+      - "docs/**"
+      - "travis.yml"
+      - "README.md"
+
+
+jobs:
+  tagged-release:
+    name: "Tagged Release"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 16
+      - uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: jar
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
+          files: |
+            build/libs/*.jar
+      - uses: eskatos/gradle-command-action@v1
+        with:
+          arguments: publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
