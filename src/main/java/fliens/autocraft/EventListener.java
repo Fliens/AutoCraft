@@ -24,6 +24,9 @@ import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockDispenseEvent;
+import org.bukkit.event.inventory.InventoryMoveItemEvent;
+import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.Plugin;
 
 import java.util.List;
@@ -46,4 +49,19 @@ public class EventListener implements Listener {
         }
     }
 
+    @EventHandler
+    public void onHopperDropperItemMove(InventoryMoveItemEvent e) {
+        if (AutoCraft.allowBlockRecipeModification) return;
+
+        Inventory initiatior = e.getInitiator();
+
+        if (initiatior.getType() == InventoryType.HOPPER || initiatior.getType() == InventoryType.DROPPER) {
+            Inventory source = e.getSource();
+            Inventory destination = e.getDestination();
+            if (source.getType() == InventoryType.DISPENSER && AutoCraft.autoCrafters.contains(source.getLocation().getBlock()))
+                e.setCancelled(true);
+            else if (destination.getType() == InventoryType.DISPENSER && AutoCraft.autoCrafters.contains(destination.getLocation().getBlock()))
+                e.setCancelled(true);
+        }
+    }
 }

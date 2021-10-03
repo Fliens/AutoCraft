@@ -38,11 +38,13 @@ import java.util.*;
 
 public class AutoCraft extends JavaPlugin {
 
-    boolean particles;
-    String redstoneMode;
-    long craftCooldown;
+    private boolean particles;
+    private String redstoneMode;
+    private long craftCooldown;
+    public static boolean allowBlockRecipeModification;
 
-    ArrayList<Recipe> recipes = new ArrayList<>();
+    public static ArrayList<Block> autoCrafters;
+    private ArrayList<Recipe> recipes = new ArrayList<>();
 
     @Override
     public void onEnable() {
@@ -51,16 +53,14 @@ public class AutoCraft extends JavaPlugin {
 
         checkConfigFile();
 
-        craftCooldown = getConfig().getLong("craftCooldown");
-        particles = getConfig().getBoolean("particles");
-        redstoneMode = getConfig().getString("redstoneMode");
+        updateConfig();
 
         recipes = collectRecipes();
 
         new EventListener(this);
         BukkitScheduler scheduler = getServer().getScheduler();
         scheduler.scheduleSyncRepeatingTask(this, () -> {
-            ArrayList<Block> autoCrafters = collectAutoCrafters();
+            autoCrafters = collectAutoCrafters();
 
             for (final Block autocrafter : autoCrafters) {
                 if (!redstoneMode.equalsIgnoreCase("disabled")) { // redstone powering type check
@@ -233,6 +233,17 @@ public class AutoCraft extends JavaPlugin {
 
     private File getFile(String fileName){
         return new File(getDataFolder(), fileName.replace('/', File.separatorChar));
+    }
+
+    /**
+     * This method reloads values from config file
+     */
+
+    private void updateConfig(){
+        craftCooldown = getConfig().getLong("craftCooldown");
+        particles = getConfig().getBoolean("particles");
+        redstoneMode = getConfig().getString("redstoneMode");
+        allowBlockRecipeModification = getConfig().getBoolean("allowBlockRecipeModification");
     }
 
     /**
