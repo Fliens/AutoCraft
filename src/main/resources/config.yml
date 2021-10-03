@@ -1,3 +1,6 @@
 craftCooldown: 8
 redstoneMode: 'indirect'
 particles: true
+
+# DO NOT CHANGE THIS NUMBER BECAUSE IT WILL RESET YOUR CONFIG
+config-version: 1
