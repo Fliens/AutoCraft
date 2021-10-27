@@ -23,6 +23,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Dispenser;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemFrame;
@@ -31,32 +32,35 @@ import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
 
+import java.io.File;
+import java.io.InputStreamReader;
 import java.util.*;
 
 public class AutoCraft extends JavaPlugin {
 
-    boolean particles;
-    String redstoneMode;
-    long craftCooldown;
+    private boolean particles;
+    private String redstoneMode;
+    private long craftCooldown;
+    public static boolean allowBlockRecipeModification;
 
-    ArrayList<Recipe> recipes = new ArrayList<>();
+    public static ArrayList<Block> autoCrafters;
+    private ArrayList<Recipe> recipes = new ArrayList<>();
 
     @Override
     public void onEnable() {
         super.onEnable();
         getLogger().info("AutoCraft plugin started");
 
-        saveDefaultConfig();
-        craftCooldown = getConfig().getLong("craftCooldown");
-        particles = getConfig().getBoolean("particles");
-        redstoneMode = getConfig().getString("redstoneMode");
+        checkConfigFile();
+
+        updateConfig();
 
         recipes = collectRecipes();
 
         new EventListener(this);
         BukkitScheduler scheduler = getServer().getScheduler();
         scheduler.scheduleSyncRepeatingTask(this, () -> {
-            ArrayList<Block> autoCrafters = collectAutoCrafters();
+            autoCrafters = collectAutoCrafters();
 
             for (final Block autocrafter : autoCrafters) {
                 if (!redstoneMode.equalsIgnoreCase("disabled")) { // redstone powering type check
@@ -166,6 +170,80 @@ public class AutoCraft extends JavaPlugin {
         recipes.add(rocket_3_recipe);
 
         return recipes;
+    }
+
+    /**
+     * This method returns a list of coordinates for particles around a block
+     *
+     * @param loc              block position
+     * @param particleDistance distance between particles
+     * @return a list of particle positions
+     **/
+
+    public List<Location> getHollowCube(Location loc, double particleDistance) {
+        List<Location> result = new ArrayList<>();
+        World world = loc.getWorld();
+        double minX = loc.getBlockX();
+        double minY = loc.getBlockY();
+        double minZ = loc.getBlockZ();
+        double maxX = loc.getBlockX() + 1;
+        double maxY = loc.getBlockY() + 1;
+        double maxZ = loc.getBlockZ() + 1;
+
+        for (double x = minX; x <= maxX; x = Math.round((x + particleDistance) * 1e2) / 1e2) {
+            for (double y = minY; y <= maxY; y = Math.round((y + particleDistance) * 1e2) / 1e2) {
+                for (double z = minZ; z <= maxZ; z = Math.round((z + particleDistance) * 1e2) / 1e2) {
+                    int components = 0;
+                    if (x == minX || x == maxX)
+                        components++;
+                    if (y == minY || y == maxY)
+                        components++;
+                    if (z == minZ || z == maxZ)
+                        components++;
+                    if (components >= 2) {
+                        result.add(new Location(world, x, y, z));
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * This method checks if the configuration file exists and has right version
+     * If config version doesn't match, backs it up to config_old.yml
+     */
+
+    private void checkConfigFile(){
+        File configFile = getFile("config.yml");
+        if(configFile.exists()) {
+            YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
+            YamlConfiguration defaultConfig = YamlConfiguration.loadConfiguration(new InputStreamReader(getResource("config.yml")));
+            if (config.getInt("config-version") != defaultConfig.getInt("config-version")) {
+                getLogger().info(ChatColor.RED + "Config version does not match, saving to 'config_old.yml' and going back to defaults");
+                configFile.renameTo(getFile("config_old.yml"));
+            }
+        }
+        saveDefaultConfig();
+    }
+
+    /**
+     * This method returns File object for specified file inside plugin data folder
+     */
+
+    private File getFile(String fileName){
+        return new File(getDataFolder(), fileName.replace('/', File.separatorChar));
+    }
+
+    /**
+     * This method reloads values from config file
+     */
+
+    private void updateConfig(){
+        craftCooldown = getConfig().getLong("craftCooldown");
+        particles = getConfig().getBoolean("particles");
+        redstoneMode = getConfig().getString("redstoneMode");
+        allowBlockRecipeModification = getConfig().getBoolean("allowBlockRecipeModification");
     }
 
     /**
@@ -476,42 +554,5 @@ public class AutoCraft extends JavaPlugin {
             cleanyY++;
         }
         return clean;
-    }
-
-    /**
-     * This method returns a list of coordinates for particles around a block
-     *
-     * @param loc              block position
-     * @param particleDistance distance between particles
-     * @return a list of particle positions
-     **/
-
-    public List<Location> getHollowCube(Location loc, double particleDistance) {
-        List<Location> result = new ArrayList<>();
-        World world = loc.getWorld();
-        double minX = loc.getBlockX();
-        double minY = loc.getBlockY();
-        double minZ = loc.getBlockZ();
-        double maxX = loc.getBlockX() + 1;
-        double maxY = loc.getBlockY() + 1;
-        double maxZ = loc.getBlockZ() + 1;
-
-        for (double x = minX; x <= maxX; x = Math.round((x + particleDistance) * 1e2) / 1e2) {
-            for (double y = minY; y <= maxY; y = Math.round((y + particleDistance) * 1e2) / 1e2) {
-                for (double z = minZ; z <= maxZ; z = Math.round((z + particleDistance) * 1e2) / 1e2) {
-                    int components = 0;
-                    if (x == minX || x == maxX)
-                        components++;
-                    if (y == minY || y == maxY)
-                        components++;
-                    if (z == minZ || z == maxZ)
-                        components++;
-                    if (components >= 2) {
-                        result.add(new Location(world, x, y, z));
-                    }
-                }
-            }
-        }
-        return result;
     }
 }

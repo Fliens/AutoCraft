@@ -1,3 +1,17 @@
+# Time between crafts in ticks
 craftCooldown: 8
+
+# Configures if crafters can be disabled with redstone input
+# values: 'disabled', 'direct', 'indirect'
+# 'direct' - crafter can be disabled only with direct powering from redstone dust/components
+# 'indirect' - crafter can be disabled by powering a block next to it (doesn't allow quasi-connectivity to disable crafters)
 redstoneMode: 'indirect'
+
+# Configures if crafters should be highlighted with green particles when crafting
 particles: true
+
+# Configures whether hoppers/dispensers can move items in and out of crafter inventory
+allowBlockRecipeModification: true
+
+# DO NOT CHANGE THIS NUMBER BECAUSE IT WILL RESET YOUR CONFIG
+config-version: 2
