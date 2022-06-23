@@ -19,6 +19,9 @@
 
 package fliens.autocraft;
 
+import me.ryanhamshire.GriefPrevention.Claim;
+import me.ryanhamshire.GriefPrevention.ClaimPermission;
+import me.ryanhamshire.GriefPrevention.GriefPrevention;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
@@ -26,6 +29,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.Plugin;
 
@@ -37,6 +41,21 @@ public class EventListener implements Listener {
 
     public EventListener(Plugin plugin) {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+    }
+
+    @EventHandler
+    public void checkProtection(PlayerInteractEvent e){
+        if(e.getClickedBlock() == null) return;
+
+        Claim claim = GriefPrevention.instance.dataStore.getClaimAt(e.getClickedBlock().getLocation(), true, null);
+        if(claim == null)
+            return;
+
+        if(!(claim.checkPermission(e.getPlayer(), ClaimPermission.Inventory, null) != null ||
+                claim.checkPermission(e.getPlayer(), ClaimPermission.Access, null) != null))
+            e.setCancelled(true);
+
+
     }
 
     @EventHandler

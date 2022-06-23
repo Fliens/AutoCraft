@@ -17,6 +17,7 @@ repositories {
       includeGroup 'org.spigotmc'
     }
   }
+  maven { url 'https://jitpack.io' }
   /*
    As Spigot-API depends on the Bungeecord ChatComponent-API,
   we need to add the Sonatype OSS repository, as Gradle,
@@ -32,4 +33,5 @@ repositories {
 
 dependencies {
   implementation 'org.spigotmc:spigot-api:1.17-R0.1-SNAPSHOT'
+  implementation 'com.github.TechFortress:GriefPrevention:16.18'
 }
