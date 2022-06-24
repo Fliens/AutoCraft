@@ -46,13 +46,17 @@ public class EventListener implements Listener {
     @EventHandler
     public void checkProtection(PlayerInteractEvent e){
         if(e.getClickedBlock() == null) return;
+        if (e.getClickedBlock().getType() != Material.DISPENSER) return;
 
         Claim claim = GriefPrevention.instance.dataStore.getClaimAt(e.getClickedBlock().getLocation(), true, null);
         if(claim == null)
             return;
 
-        if(!(claim.checkPermission(e.getPlayer(), ClaimPermission.Inventory, null) != null ||
-                claim.checkPermission(e.getPlayer(), ClaimPermission.Access, null) != null))
+        if(AutoCraft.autoCrafters != null && AutoCraft.autoCrafters.contains(e.getClickedBlock())) return;
+
+
+
+        if(claim.checkPermission(e.getPlayer(), ClaimPermission.Inventory, null) == null)
             e.setCancelled(true);
 
 
