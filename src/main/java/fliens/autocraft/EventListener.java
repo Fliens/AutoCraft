@@ -47,17 +47,17 @@ public class EventListener implements Listener {
     public void checkProtection(PlayerInteractEvent e){
         if(e.getClickedBlock() == null) return;
         if (e.getClickedBlock().getType() != Material.DISPENSER) return;
-
-        Claim claim = GriefPrevention.instance.dataStore.getClaimAt(e.getClickedBlock().getLocation(), true, null);
-        if(claim == null)
-            return;
+        try {
+            Claim claim = GriefPrevention.instance.dataStore.getClaimAt(e.getClickedBlock().getLocation(), true, null);
+            if (claim == null)
+                return;
+            if(claim.checkPermission(e.getPlayer(), ClaimPermission.Inventory, null) == null)
+                e.setCancelled(true);
+        }catch(NoClassDefFoundError error){
+            // If GriefPrevention not present, just ignore it.
+        }
 
         if(AutoCraft.autoCrafters != null && AutoCraft.autoCrafters.contains(e.getClickedBlock())) return;
-
-
-
-        if(claim.checkPermission(e.getPlayer(), ClaimPermission.Inventory, null) == null)
-            e.setCancelled(true);
 
 
     }
@@ -65,8 +65,8 @@ public class EventListener implements Listener {
     @EventHandler
     public void onItemMove(BlockDispenseEvent e) {
         if (e.getBlock().getType().equals(Material.DISPENSER)) {
-            List<Block> autoCrafters = collectAutoCrafters();
-            if (autoCrafters.contains(e.getBlock())) {
+            //List<Block> autoCrafters = collectAutoCrafters();// This may cause heavy lag.
+            if (AutoCraft.autoCrafters.contains(e.getBlock())) {
                 e.setCancelled(true);
             }
         }
