@@ -44,7 +44,7 @@ public class AutoCraft extends JavaPlugin {
     public static boolean allowBlockRecipeModification;
 
     public static ArrayList<Block> autoCrafters;
-    private ArrayList<Recipe> recipes = new ArrayList<>();
+    private ArrayList<Recipe> recipes;
 
     @Override
     public void onEnable() {
@@ -54,8 +54,8 @@ public class AutoCraft extends JavaPlugin {
         checkConfigFile();
 
         updateConfig();
-
-        recipes = collectRecipes();
+        //If you do this, every plugins that add recipes must be "LoadBefore" in plugin.yml.
+        //recipes = collectRecipes();
 
         new EventListener(this);
         BukkitScheduler scheduler = getServer().getScheduler();
@@ -409,6 +409,11 @@ public class AutoCraft extends JavaPlugin {
         }
 
         ItemStack result;
+
+        // Load recipes after every plugin activated.
+        if(recipes == null){
+            recipes = collectRecipes();
+        }
         for (Recipe recipe : recipes) {
             if (recipe instanceof ShapelessRecipe) { // shapeless recipe
                 result = matchesShapeless(((ShapelessRecipe) recipe).getChoiceList(), items) ? recipe.getResult()
